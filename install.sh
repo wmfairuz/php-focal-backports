@@ -122,6 +122,8 @@ for common in $(printf '%s\n' "${pkgs[@]}" | grep -E '^php(7\.[2-4]|8\.[0-2])-co
     mm=${common#php}; mm=${mm%-common}
     if zgrep -qE 'CVE-2026-10961[89]' "/usr/share/doc/$common/changelog.Debian.gz" 2>/dev/null; then
         ok "PHP $mm  $ver  — patched"
+    elif ! apt-cache madison "$common" 2>/dev/null | grep -qF "$REPO_URL"; then
+        warn "PHP $mm  $ver  — not in this repository yet; re-run this script once it is"
     else
         echo -e "  ${R}✗${N} PHP $mm  $ver  — NOT patched"
         fail=1
