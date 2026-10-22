@@ -1,0 +1,109 @@
+name: Build and publish
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash   # explicit bash runs with -eo pipefail, so `| tee` can't hide failures
+
+env:
+  # Bump when rebuilding the same Sury sources (changes the +pfbN suffix)
+  REVISION: '1'
+  SOURCE_URL: https://packages.sury.org/php/pool/main/p
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.0', '8.1', '8.2']
+        target: [ubuntu20.04]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Download pinned Sury source
+        run: |
+          mkdir sources-dl out
+          while read -r _ file; do
+            curl -fsSL --retry 3 "$SOURCE_URL/php${{ matrix.php }}/${file//+/%2B}" -o "sources-dl/$file"
+          done < "sources/php${{ matrix.php }}.sha256"
+          (cd sources-dl && sha256sum -c "../sources/php${{ matrix.php }}.sha256")
+
+      - name: Build in ${{ matrix.target }}
+        run: |
+          target=${{ matrix.target }}
+          image="ubuntu:${target#ubuntu}"
+          docker run --rm --platform linux/amd64 \
+            -v "$PWD:/repo:ro" -v "$PWD/sources-dl:/sources:ro" -v "$PWD/out:/out" \
+            -e PHP=${{ matrix.php }} -e REVISION -e JOBS=4 \
+            "$image" bash /repo/build.sh 2>&1 | tee "out/build-php${{ matrix.php }}.log"
+          test -s "out/SHA256SUMS-php${{ matrix.php }}"
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: php${{ matrix.php }}-${{ matrix.target }}-amd64
+          path: out/
+          retention-days: 14
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+          pattern: php*-ubuntu20.04-amd64
+
+      - name: Import signing key
+        env:
+          APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
+        run: |
+          echo "$APT_SIGNING_KEY" | gpg --batch --import
+          echo "SIGNING_KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr/{print $10; exit}')" >> "$GITHUB_ENV"
+
+      - name: Build APT repository
+        run: |
+          sudo apt-get install -y --no-install-recommends apt-utils
+          scripts/make-apt-repo.sh artifacts site focal
+          cp README.md site/
+          ls -la site site/dists/focal
+
+      - name: Attach packages to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" --verify-tag --title "PHP backports for Ubuntu 20.04 ($TAG)" --notes-file README.md
+          gh release upload "$TAG" artifacts/*/SHA256SUMS-* artifacts/*/build-php*.log site/key.asc
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
