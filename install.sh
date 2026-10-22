@@ -41,21 +41,32 @@ ok "$PRETTY_NAME, amd64"
 
 # ── 2. Add the signed repository ──────────────────────────────────────
 step "Adding the repository"
-if ! command -v gpg >/dev/null 2>&1; then
-    apt-get update -qq 2>/dev/null || true   # other broken sources must not block this
-    apt-get install -y -qq gnupg >/dev/null || die "Could not install gnupg (needed to verify the key)."
-fi
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
-curl -fsSL "$REPO_URL/key.gpg" -o "$tmp/key.gpg" || die "Could not download the signing key from $REPO_URL"
-got=$(gpg --show-keys --with-colons "$tmp/key.gpg" 2>/dev/null | awk -F: '/^fpr/ && !f {print $10; f=1}')
+# Nothing here may wait forever: bounded downloads, apt lock waits and gpg
+APT_LOCK=(-o DPkg::Lock::Timeout=120)
+if ! command -v gpg >/dev/null 2>&1; then
+    echo "  Installing gnupg (needed to verify the key)…"
+    timeout 600 apt-get update -qq 2>/dev/null || true   # other broken sources must not block this
+    timeout 600 apt-get install -y -qq "${APT_LOCK[@]}" gnupg >/dev/null \
+        || die "Could not install gnupg. Is another apt/dpkg running? Check: ps aux | grep -E '[a]pt|[d]pkg'"
+fi
+echo "  Downloading signing key…"
+curl -fsSL --connect-timeout 15 --max-time 60 --retry 2 "$REPO_URL/key.gpg" -o "$tmp/key.gpg" \
+    || die "Could not download $REPO_URL/key.gpg — check outbound HTTPS: curl -v $REPO_URL/key.gpg"
+echo "  Verifying it…"
+# Throwaway keyring: never touches root's ~/.gnupg (a stale lock there makes gpg wait forever)
+mkdir -m 700 "$tmp/gnupg"
+got=$(GNUPGHOME="$tmp/gnupg" timeout 30 gpg --batch --show-keys --with-colons "$tmp/key.gpg" 2>/dev/null \
+      | awk -F: '/^fpr/ && !f {print $10; f=1}') || true
+[ -n "$got" ] || die "gpg could not read the downloaded key (timed out or not a key). Try: gpg --show-keys $tmp/key.gpg"
 [ "$got" = "$FINGERPRINT" ] || die "Signing key fingerprint is '$got', expected $FINGERPRINT. Not adding it."
 install -m 0644 "$tmp/key.gpg" "$KEYRING"
 echo "deb [signed-by=$KEYRING] $REPO_URL focal main" > "$LIST"
 ok "Key verified ($FINGERPRINT)"
 ok "Repository added: $LIST"
 
-echo "  Running apt update…"
-if ! apt-get update -qq 2>"$tmp/update.err"; then
+echo "  Running apt update (can take a minute)…"
+if ! timeout 600 apt-get update -qq 2>"$tmp/update.err"; then
     warn "apt update reported errors from other sources (not this repository) — fix them separately:"
     sed -n '1,5s/^/      /p' "$tmp/update.err"
 fi
@@ -124,7 +135,7 @@ else
     # ── 4. Upgrade, keeping existing config files ────────────────────
     step "Upgrading PHP"
     # confold: keep edited conffiles; UCF_FORCE_CONFFOLD: same for php.ini (managed by ucf)
-    DEBIAN_FRONTEND=noninteractive UCF_FORCE_CONFFOLD=1 apt-get install -y -q --only-upgrade \
+    DEBIAN_FRONTEND=noninteractive UCF_FORCE_CONFFOLD=1 apt-get install -y -q --only-upgrade "${APT_LOCK[@]}" \
         -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold "${ours[@]}"
     ok "Packages upgraded"
 fi
