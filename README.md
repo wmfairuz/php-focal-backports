@@ -245,6 +245,15 @@ the `.list` line has a typo. Only `focal` exists.
 to date, or it is not installed from a source these packages replace. Check
 what you have with `dpkg -l 'php*' | grep ^ii`.
 
+**`404 Not Found` for `ppa.launchpad.net/ondrej/php/...`, or `changed its 'Label' value`**:
+Ondřej's PPA still exists for 20.04 but no longer contains any packages, and
+apt keeps using its old index. The installer only upgrades packages from this
+repository and leaves the rest alone, but plain `apt upgrade` may still trip
+over it. Once the PHP packages come from here, remove the PPA:
+`sudo add-apt-repository --remove ppa:ondrej/php && sudo apt update`.
+Extensions you installed from it (`php8.0-imagick`, …) stay installed and keep
+working.
+
 **apt wants to remove packages**: stop and read the list. This usually means
 an extension from a separate source package (for example `php8.1-redis`) pins
 an exact older `php8.1-common`. Upgrade that extension in the same command, or

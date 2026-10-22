@@ -62,6 +62,11 @@ fi
 apt-cache policy > "$tmp/policy" 2>/dev/null || true
 grep -qF "$REPO_URL" "$tmp/policy" || die "apt cannot read $REPO_URL — check the errors above."
 ok "apt can read the repository"
+if ppa=$(grep -rlsE 'ppa\.launchpad(content)?\.net/ondrej/php' /etc/apt/sources.list /etc/apt/sources.list.d/); then
+    warn "Ondrej's PPA is still configured ($ppa). It has no 20.04 packages left, and its"
+    warn "stale index can make apt try downloads that 404. Consider removing it:"
+    echo "      sudo add-apt-repository --remove ppa:ondrej/php"
+fi
 
 # ── 3. Which PHP is installed, and what would change? ─────────────────
 step "Looking at installed PHP"
@@ -74,13 +79,32 @@ if [ ${#pkgs[@]} -eq 0 ]; then
 fi
 echo "  Installed: $(printf '%s\n' "${pkgs[@]}" | sed -E 's/^(php|libapache2-mod-php|libphp)([0-9.]+).*/\2/' | sort -uV | sed 's/^/PHP /' | paste -sd, - | sed 's/,/, /g')"
 
-plan=$(apt-get install -s --only-upgrade "${pkgs[@]}" 2>&1 || true)
+# Only touch packages this repository provides. Others (php8.0-imagick,
+# php7.4-redis, …) stay as installed — and their stale Ondrej candidates,
+# whose files are gone, must never be requested.
+ours=(); others=()
+for p in "${pkgs[@]}"; do
+    if grep -qF "$REPO_URL" <<<"$(apt-cache madison "$p" 2>/dev/null)"; then ours+=("$p"); else others+=("$p"); fi
+done
+if [ ${#others[@]} -gt 0 ]; then
+    echo "  Left as they are (not in this repository, they keep working):"
+    echo "${others[*]}" | fold -s -w 72 | sed 's/^/      /'
+fi
+
+plan=""
+[ ${#ours[@]} -gt 0 ] && plan=$(apt-get install -s --only-upgrade "${ours[@]}" 2>&1 || true)
 removals=$(echo "$plan" | awk '/^Remv /{print $2}')
 upgrades=$(echo "$plan" | awk '/^Inst /{print $2}')
+from_ppa=$(echo "$plan" | awk '/^Inst / && /LP-PPA-ondrej/ {print $2}')
 if [ -n "$removals" ]; then
     warn "apt would REMOVE these packages, so nothing was changed:"
     echo "$removals" | sed 's/^/      /'
     die "Upgrade them by hand or open an issue: https://github.com/wmfairuz/php-focal-backports/issues"
+fi
+if [ -n "$from_ppa" ]; then
+    warn "apt also wants these from Ondrej's PPA, whose 20.04 files no longer exist:"
+    echo "$from_ppa" | sed 's/^/      /'
+    die "Remove the PPA (sudo add-apt-repository --remove ppa:ondrej/php), run apt update, then re-run this script."
 fi
 if [ -z "$upgrades" ]; then
     ok "PHP is already up to date from this repository."
@@ -101,7 +125,7 @@ else
     step "Upgrading PHP"
     # confold: keep edited conffiles; UCF_FORCE_CONFFOLD: same for php.ini (managed by ucf)
     DEBIAN_FRONTEND=noninteractive UCF_FORCE_CONFFOLD=1 apt-get install -y -q --only-upgrade \
-        -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold "${pkgs[@]}"
+        -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold "${ours[@]}"
     ok "Packages upgraded"
 fi
 
