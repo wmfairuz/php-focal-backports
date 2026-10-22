@@ -19,7 +19,7 @@ normal `apt upgrade`.
 
 - [What's fixed](#whats-fixed)
 - [Is this for me?](#is-this-for-me)
-- [Quick start](#quick-start)
+- [Quick start](#quick-start) (one command)
 - [Check that it worked](#check-that-it-worked)
 - [What's in the repository](#whats-in-the-repository)
 - [Can I trust these packages?](#can-i-trust-these-packages)
@@ -65,8 +65,35 @@ dpkg --print-architecture   # must print: amd64
 
 ## Quick start
 
-Before you start, take a snapshot or backup of the server. Ondřej's old 20.04
-packages are no longer downloadable, so you cannot `apt` your way back to them.
+Take a snapshot or backup of the server first: Ondřej's old 20.04 packages are
+no longer downloadable, so you cannot `apt` your way back to them.
+
+Then run **one command**:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/wmfairuz/php-focal-backports/main/install.sh | sudo bash
+```
+
+It checks the server is Ubuntu 20.04 amd64, adds the repository after
+verifying its signing key, shows which PHP packages it will upgrade and asks
+before changing anything, upgrades only the PHP 7.4–8.2 you already have
+(keeping your `php.ini` and pool files), restarts PHP-FPM / Apache, and
+confirms each PHP version is patched. It stops without changing anything if
+apt would remove a package. Running it again is safe.
+
+To run it unattended (for example from Ansible), skip the prompt:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/wmfairuz/php-focal-backports/main/install.sh | sudo bash -s -- --yes
+```
+
+Read [`install.sh`](install.sh) before piping it to `sudo bash` if your policy
+requires it. From then on, future fixes arrive with your normal
+`sudo apt update && sudo apt upgrade`.
+
+### Manual setup
+
+The same steps by hand.
 
 **1. Add the repository** (once per server):
 

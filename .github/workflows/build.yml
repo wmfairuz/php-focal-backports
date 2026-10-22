@@ -99,6 +99,9 @@ jobs:
           <h1>php-focal-backports</h1>
           <p>Signed APT repository: patched PHP 7.4, 8.0, 8.1 and 8.2 for Ubuntu 20.04 (focal), amd64.</p>
           <p>Setup, verification and details: <a href="https://github.com/wmfairuz/php-focal-backports#readme">github.com/wmfairuz/php-focal-backports</a></p>
+          <p>Set up a server with one command:</p>
+          <pre>curl -fsSL https://raw.githubusercontent.com/wmfairuz/php-focal-backports/main/install.sh | sudo bash</pre>
+          <p>Or add it by hand:</p>
           <pre>deb [signed-by=/usr/share/keyrings/php-focal-backports.gpg] https://wmfairuz.github.io/php-focal-backports focal main</pre>
           <p>Signing key: <a href="key.gpg">key.gpg</a> · <a href="key.asc">key.asc</a> — fingerprint EAD9 0151 D4B3 AF78 A6E7 FB1B 408D 844A ED9B 9D0A</p>
           EOF
