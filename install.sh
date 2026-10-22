@@ -41,10 +41,13 @@ ok "$PRETTY_NAME, amd64"
 
 # ── 2. Add the signed repository ──────────────────────────────────────
 step "Adding the repository"
-command -v gpg >/dev/null 2>&1 || { apt-get update -qq && apt-get install -y -qq gnupg >/dev/null; }
+if ! command -v gpg >/dev/null 2>&1; then
+    apt-get update -qq 2>/dev/null || true   # other broken sources must not block this
+    apt-get install -y -qq gnupg >/dev/null || die "Could not install gnupg (needed to verify the key)."
+fi
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 curl -fsSL "$REPO_URL/key.gpg" -o "$tmp/key.gpg" || die "Could not download the signing key from $REPO_URL"
-got=$(gpg --show-keys --with-colons "$tmp/key.gpg" 2>/dev/null | awk -F: '/^fpr/{print $10; exit}')
+got=$(gpg --show-keys --with-colons "$tmp/key.gpg" 2>/dev/null | awk -F: '/^fpr/ && !f {print $10; f=1}')
 [ "$got" = "$FINGERPRINT" ] || die "Signing key fingerprint is '$got', expected $FINGERPRINT. Not adding it."
 install -m 0644 "$tmp/key.gpg" "$KEYRING"
 echo "deb [signed-by=$KEYRING] $REPO_URL focal main" > "$LIST"
@@ -53,10 +56,11 @@ ok "Repository added: $LIST"
 
 echo "  Running apt update…"
 if ! apt-get update -qq 2>"$tmp/update.err"; then
-    warn "apt update reported errors from some sources (often the retired Ondrej PPA):"
-    sed 's/^/      /' "$tmp/update.err" | head -5
+    warn "apt update reported errors from other sources (not this repository) — fix them separately:"
+    sed -n '1,5s/^/      /p' "$tmp/update.err"
 fi
-apt-cache policy 2>/dev/null | grep -q "$REPO_URL" || die "apt cannot read $REPO_URL — check the errors above."
+apt-cache policy > "$tmp/policy" 2>/dev/null || true
+grep -qF "$REPO_URL" "$tmp/policy" || die "apt cannot read $REPO_URL — check the errors above."
 ok "apt can read the repository"
 
 # ── 3. Which PHP is installed, and what would change? ─────────────────
@@ -122,7 +126,7 @@ for common in $(printf '%s\n' "${pkgs[@]}" | grep -E '^php(7\.[2-4]|8\.[0-2])-co
     mm=${common#php}; mm=${mm%-common}
     if zgrep -qE 'CVE-2026-10961[89]' "/usr/share/doc/$common/changelog.Debian.gz" 2>/dev/null; then
         ok "PHP $mm  $ver  — patched"
-    elif ! apt-cache madison "$common" 2>/dev/null | grep -qF "$REPO_URL"; then
+    elif ! grep -qF "$REPO_URL" <<<"$(apt-cache madison "$common" 2>/dev/null)"; then
         warn "PHP $mm  $ver  — not in this repository yet; re-run this script once it is"
     else
         echo -e "  ${R}✗${N} PHP $mm  $ver  — NOT patched"
