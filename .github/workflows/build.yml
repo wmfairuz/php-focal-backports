@@ -91,6 +91,17 @@ jobs:
           sudo apt-get install -y --no-install-recommends apt-utils
           scripts/make-apt-repo.sh artifacts site focal
           cp README.md site/
+          # Landing page so the repo URL isn't a bare 404 in a browser
+          cat > site/index.html <<'EOF'
+          <!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+          <title>php-focal-backports</title>
+          <style>body{font:16px/1.5 system-ui,sans-serif;max-width:46rem;margin:2rem auto;padding:0 1rem}pre{background:#8881;padding:.75rem;overflow-x:auto}</style>
+          <h1>php-focal-backports</h1>
+          <p>Signed APT repository: patched PHP 7.4, 8.0, 8.1 and 8.2 for Ubuntu 20.04 (focal), amd64.</p>
+          <p>Setup, verification and details: <a href="https://github.com/wmfairuz/php-focal-backports#readme">github.com/wmfairuz/php-focal-backports</a></p>
+          <pre>deb [signed-by=/usr/share/keyrings/php-focal-backports.gpg] https://wmfairuz.github.io/php-focal-backports focal main</pre>
+          <p>Signing key: <a href="key.gpg">key.gpg</a> · <a href="key.asc">key.asc</a> — fingerprint EAD9 0151 D4B3 AF78 A6E7 FB1B 408D 844A ED9B 9D0A</p>
+          EOF
           ls -la site site/dists/focal
 
       - name: Attach packages to the GitHub release
