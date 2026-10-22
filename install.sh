@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # One-command setup for php-focal-backports on an Ubuntu 20.04 server:
-# adds the signed repository, upgrades the PHP 7.4–8.2 packages already
+# adds the signed repository, upgrades the PHP 7.2–8.2 packages already
 # installed, restarts PHP, and checks the result.
 #
 #   curl -fsSL https://raw.githubusercontent.com/wmfairuz/php-focal-backports/main/install.sh | sudo bash
@@ -15,7 +15,7 @@ REPO_URL="https://wmfairuz.github.io/php-focal-backports"
 FINGERPRINT="EAD90151D4B3AF78A6E7FB1B408D844AED9B9D0A"
 KEYRING="/usr/share/keyrings/php-focal-backports.gpg"
 LIST="/etc/apt/sources.list.d/php-focal-backports.list"
-PHP_RE='^(php(7\.4|8\.[0-2])($|-)|libapache2-mod-php(7\.4|8\.[0-2])$|libphp(7\.4|8\.[0-2])-)'
+PHP_RE='^(php(7\.[2-4]|8\.[0-2])($|-)|libapache2-mod-php(7\.[2-4]|8\.[0-2])$|libphp(7\.[2-4]|8\.[0-2])-)'
 
 ASSUME_YES=no
 case "${1:-}" in -y|--yes) ASSUME_YES=yes ;; esac
@@ -64,7 +64,7 @@ step "Looking at installed PHP"
 mapfile -t pkgs < <(dpkg-query -W -f='${db:Status-Abbrev} ${Package}\n' 2>/dev/null \
                      | awk '$1=="ii"{print $2}' | grep -E "$PHP_RE" || true)
 if [ ${#pkgs[@]} -eq 0 ]; then
-    ok "No PHP 7.4–8.2 installed. The repository is ready; install what you need, e.g.:"
+    ok "No PHP 7.2–8.2 installed. The repository is ready; install what you need, e.g.:"
     echo "      sudo apt install php8.2-fpm php8.2-mysql"
     exit 0
 fi
@@ -117,7 +117,7 @@ fi
 # ── 6. Check the result ───────────────────────────────────────────────
 step "Result"
 fail=0
-for common in $(printf '%s\n' "${pkgs[@]}" | grep -E '^php(7\.4|8\.[0-2])-common$'); do
+for common in $(printf '%s\n' "${pkgs[@]}" | grep -E '^php(7\.[2-4]|8\.[0-2])-common$'); do
     ver=$(dpkg-query -W -f='${Version}' "$common")
     mm=${common#php}; mm=${mm%-common}
     if zgrep -qE 'CVE-2026-10961[89]' "/usr/share/doc/$common/changelog.Debian.gz" 2>/dev/null; then

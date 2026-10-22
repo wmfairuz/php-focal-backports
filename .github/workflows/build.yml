@@ -26,7 +26,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['7.4', '8.0', '8.1', '8.2']
+        php: ['7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
         target: [ubuntu20.04]
     steps:
       - uses: actions/checkout@v7
@@ -97,7 +97,7 @@ jobs:
           <title>php-focal-backports</title>
           <style>body{font:16px/1.5 system-ui,sans-serif;max-width:46rem;margin:2rem auto;padding:0 1rem}pre{background:#8881;padding:.75rem;overflow-x:auto}</style>
           <h1>php-focal-backports</h1>
-          <p>Signed APT repository: patched PHP 7.4, 8.0, 8.1 and 8.2 for Ubuntu 20.04 (focal), amd64.</p>
+          <p>Signed APT repository: patched PHP 7.2 to 8.2 for Ubuntu 20.04 (focal), amd64.</p>
           <p>Setup, verification and details: <a href="https://github.com/wmfairuz/php-focal-backports#readme">github.com/wmfairuz/php-focal-backports</a></p>
           <p>Set up a server with one command:</p>
           <pre>curl -fsSL https://raw.githubusercontent.com/wmfairuz/php-focal-backports/main/install.sh | sudo bash</pre>

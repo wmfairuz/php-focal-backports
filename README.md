@@ -1,6 +1,6 @@
 # PHP security backports for Ubuntu 20.04
 
-Patched **PHP 7.4, 8.0, 8.1 and 8.2** packages for **Ubuntu 20.04 LTS (focal)**,
+Patched **PHP 7.2, 7.3, 7.4, 8.0, 8.1 and 8.2** packages for **Ubuntu 20.04 LTS (focal)**,
 published as a signed APT repository.
 
 If your 20.04 servers got PHP from Ondřej Surý's PPA (`ppa:ondrej/php`), they
@@ -12,7 +12,7 @@ normal `apt upgrade`.
 > [!IMPORTANT]
 > This is an unofficial, community rebuild. It is not affiliated with or
 > endorsed by the PHP project, Ondřej Surý, or Canonical.
-> Ubuntu 20.04 and PHP 7.4–8.1 are end-of-life: use this to stay patched while
+> Ubuntu 20.04 and PHP 7.2–8.1 are end-of-life: use this to stay patched while
 > you move to Ubuntu 24.04 and a supported PHP, not as long-term support.
 
 ## Contents
@@ -32,6 +32,8 @@ normal `apt upgrade`.
 
 | PHP | Package version in this repo        | What `php -v` shows | CVE-2026-109618 / CVE-2026-109619 |
 | --- | ----------------------------------- | ------------------- | --------------------------------- |
+| 7.2 | `7.2.34-66+pfb1~ubuntu20.04.1`      | 7.2.34              | fixed (backport)                  |
+| 7.3 | `7.3.33-35+pfb1~ubuntu20.04.1`      | 7.3.33              | fixed (backport)                  |
 | 7.4 | `1:7.4.33-31+pfb1~ubuntu20.04.1`    | 7.4.33              | fixed (backport)                  |
 | 8.0 | `1:8.0.30-25+pfb1~ubuntu20.04.1`    | 8.0.30              | fixed (backport)                  |
 | 8.1 | `8.1.34-9+pfb1~ubuntu20.04.1`       | 8.1.34              | fixed (backport)                  |
@@ -39,21 +41,21 @@ normal `apt upgrade`.
 
 CVE-2026-109618 and CVE-2026-109619 are the critical (CVSS 9.2) remote code
 execution bugs fixed in PHP 8.2.35 / 8.3.36 / 8.4.27 / 8.5.12 on 2026-10-21.
-PHP no longer maintains 7.4–8.1; Sury backported the fix to those branches,
+PHP no longer maintains 7.2–8.1; Sury backported the fix to those branches,
 which is why their version number does not change. Each package also carries
 every earlier security fix in Sury's packaging.
 
 ## Is this for me?
 
-**Yes, if** your server runs Ubuntu 20.04 on amd64 (x86-64) and PHP 7.4, 8.0,
-8.1 or 8.2 from Ondřej's PPA, Ubuntu's own `php7.4`, or nothing yet.
+**Yes, if** your server runs Ubuntu 20.04 on amd64 (x86-64) and PHP 7.2, 7.3,
+7.4, 8.0, 8.1 or 8.2 from Ondřej's PPA, Ubuntu's own `php7.4`, or nothing yet.
 
 **No, if** your server is:
 
 - **Ubuntu 22.04 or 24.04**: use Ondřej's PPA (`ppa:ondrej/php`) directly. It
   already has the fix.
 - **arm64 / ARM**: only amd64 packages are built.
-- **PHP 8.3 or newer on 20.04**: not built here.
+- **PHP 8.3 or newer, or 7.1 and older, on 20.04**: not built here.
 - **cPanel, Plesk, or a Docker image**: update PHP through those instead.
 
 Find your release and architecture with:
@@ -76,7 +78,7 @@ curl -fsSL https://raw.githubusercontent.com/wmfairuz/php-focal-backports/main/i
 
 It checks the server is Ubuntu 20.04 amd64, adds the repository after
 verifying its signing key, shows which PHP packages it will upgrade and asks
-before changing anything, upgrades only the PHP 7.4–8.2 you already have
+before changing anything, upgrades only the PHP 7.2–8.2 you already have
 (keeping your `php.ini` and pool files), restarts PHP-FPM / Apache, and
 confirms each PHP version is patched. It stops without changing anything if
 apt would remove a package. Running it again is safe.
@@ -117,7 +119,7 @@ apt list --upgradable 2>/dev/null | grep pfb
 installed, and other system packages are left alone):
 
 ```bash
-sudo apt install --only-upgrade 'php7.4*' 'php8.0*' 'php8.1*' 'php8.2*' 'libapache2-mod-php*' 'libphp*'
+sudo apt install --only-upgrade 'php7.2*' 'php7.3*' 'php7.4*' 'php8.0*' 'php8.1*' 'php8.2*' 'libapache2-mod-php*' 'libphp*'
 ```
 
 If apt asks whether to keep or replace a modified config file (`php.ini`, a
@@ -259,7 +261,7 @@ with your `lsb_release -a`, `dpkg -l 'php*' | grep ^ii`, and the full error.
 
 ### Ship a new security fix
 
-When Sury publishes a fixed revision of PHP 7.4–8.2:
+When Sury publishes a fixed revision of PHP 7.2–8.2:
 
 ```bash
 scripts/update-sources.sh           # re-pin sources/ to Sury's current packages
