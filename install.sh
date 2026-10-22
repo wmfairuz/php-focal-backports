@@ -44,9 +44,11 @@ step "Adding the repository"
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 # Nothing here may wait forever: bounded downloads, apt lock waits and gpg
 APT_LOCK=(-o DPkg::Lock::Timeout=120)
+# Accept a renamed repo Label (Ondrej's PPA did this) instead of keeping a stale index
+APT_UPD=(-o Acquire::AllowReleaseInfoChange::Label=true)
 if ! command -v gpg >/dev/null 2>&1; then
     echo "  Installing gnupg (needed to verify the key)…"
-    timeout 600 apt-get update -qq 2>/dev/null || true   # other broken sources must not block this
+    timeout 600 apt-get update -qq "${APT_UPD[@]}" 2>/dev/null || true   # other broken sources must not block this
     timeout 600 apt-get install -y -qq "${APT_LOCK[@]}" gnupg >/dev/null \
         || die "Could not install gnupg. Is another apt/dpkg running? Check: ps aux | grep -E '[a]pt|[d]pkg'"
 fi
@@ -66,7 +68,7 @@ ok "Key verified ($FINGERPRINT)"
 ok "Repository added: $LIST"
 
 echo "  Running apt update (can take a minute)…"
-if ! timeout 600 apt-get update -qq 2>"$tmp/update.err"; then
+if ! timeout 600 apt-get update -qq "${APT_UPD[@]}" 2>"$tmp/update.err"; then
     warn "apt update reported errors from other sources (not this repository) — fix them separately:"
     sed -n '1,5s/^/      /p' "$tmp/update.err"
 fi
