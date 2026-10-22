@@ -245,7 +245,16 @@ the `.list` line has a typo. Only `focal` exists.
 to date, or it is not installed from a source these packages replace. Check
 what you have with `dpkg -l 'php*' | grep ^ii`.
 
-**`404 Not Found` for `ppa.launchpad.net/ondrej/php/...`, or `changed its 'Label' value`**:
+**`Repository '…ondrej/php…' changed its 'Label' value`**: Ondřej renamed his
+PPA, and apt refuses to refresh it (keeping an old index whose files 404)
+until you accept that. The installer does this for you; by hand, accept the
+label change only:
+
+```bash
+sudo apt-get update -o Acquire::AllowReleaseInfoChange::Label=true
+```
+
+**`404 Not Found` for `ppa.launchpad.net/ondrej/php/...`**:
 Ondřej's PPA still exists for 20.04 but no longer contains any packages, and
 apt keeps using its old index. The installer only upgrades packages from this
 repository and leaves the rest alone, but plain `apt upgrade` may still trip
