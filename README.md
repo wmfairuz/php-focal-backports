@@ -30,18 +30,24 @@ normal `apt upgrade`.
 
 ## What's fixed
 
-| PHP | Package version in this repo        | What `php -v` shows | CVE-2026-109618 / CVE-2026-109619 |
-| --- | ----------------------------------- | ------------------- | --------------------------------- |
-| 7.2 | `7.2.34-66+pfb1~ubuntu20.04.1`      | 7.2.34              | fixed (backport)                  |
-| 7.3 | `7.3.33-35+pfb1~ubuntu20.04.1`      | 7.3.33              | fixed (backport)                  |
-| 7.4 | `1:7.4.33-31+pfb1~ubuntu20.04.1`    | 7.4.33              | fixed (backport)                  |
-| 8.0 | `1:8.0.30-25+pfb1~ubuntu20.04.1`    | 8.0.30              | fixed (backport)                  |
-| 8.1 | `8.1.34-9+pfb1~ubuntu20.04.1`       | 8.1.34              | fixed (backport)                  |
-| 8.2 | `8.2.35-1+pfb1~ubuntu20.04.1`       | 8.2.35              | fixed (upstream release)          |
+| PHP | Package version in this repo      | What `php -v` shows | October fixes (CVE-2026-109618/109619) | November fixes (CVE-2026-129289, CVE-2026-115560, …) |
+| --- | --------------------------------- | ------------------- | -------------------------------------- | ---------------------------------------------------- |
+| 7.2 | `7.2.34-71+pfb1~ubuntu20.04.1`    | 7.2.34              | fixed (backport)                       | fixed (backport)                                     |
+| 7.3 | `7.3.33-42+pfb1~ubuntu20.04.1`    | 7.3.33              | fixed (backport)                       | fixed (backport)                                     |
+| 7.4 | `1:7.4.33-38+pfb1~ubuntu20.04.1`  | 7.4.33              | fixed (backport)                       | fixed (backport)                                     |
+| 8.0 | `1:8.0.30-32+pfb1~ubuntu20.04.1`  | 8.0.30              | fixed (backport)                       | fixed (backport)                                     |
+| 8.1 | `8.1.34-15+pfb1~ubuntu20.04.1`    | 8.1.34              | fixed (backport)                       | fixed (backport)                                     |
+| 8.2 | `8.2.36-3+pfb1~ubuntu20.04.1`     | 8.2.36              | fixed (upstream release)               | fixed (upstream release)                             |
 
-CVE-2026-109618 and CVE-2026-109619 are the critical (CVSS 9.2) remote code
-execution bugs fixed in PHP 8.2.35 / 8.3.36 / 8.4.27 / 8.5.12 on 2026-10-21.
-PHP no longer maintains 7.2–8.1; Sury backported the fix to those branches,
+- **October 2026:** CVE-2026-109618 and CVE-2026-109619, critical (CVSS 9.2)
+  remote code execution bugs fixed in PHP 8.2.35 / 8.3.36 / 8.4.27 / 8.5.12 on
+  2026-10-21.
+- **November 2026:** the security round fixed in PHP 8.2.36 / 8.3.37 / 8.4.28 /
+  8.5.13 on 2026-11-19, including CVE-2026-129289 (PHP-FPM request smuggling
+  when the web server reuses FastCGI connections) and CVE-2026-115560 (session
+  serializer mismatch). Both can lead to remote code execution.
+
+PHP no longer maintains 7.2–8.1; Sury backported the fixes to those branches,
 which is why their version number does not change. Each package also carries
 every earlier security fix in Sury's packaging.
 
@@ -143,8 +149,8 @@ dpkg -l 'php*-common' | grep ^ii
 ```
 
 ```
-ii  php8.1-common  8.1.34-9+pfb1~ubuntu20.04.1  amd64  documentation, examples and common module for PHP
-ii  php8.2-common  8.2.35-1+pfb1~ubuntu20.04.1  amd64  documentation, examples and common module for PHP
+ii  php8.1-common  8.1.34-15+pfb1~ubuntu20.04.1  amd64  documentation, examples and common module for PHP
+ii  php8.2-common  8.2.36-3+pfb1~ubuntu20.04.1   amd64  documentation, examples and common module for PHP
 ```
 
 Also confirm each PHP-FPM service came back up:

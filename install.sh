@@ -161,7 +161,8 @@ fail=0
 for common in $(printf '%s\n' "${pkgs[@]}" | grep -E '^php(7\.[2-4]|8\.[0-2])-common$'); do
     ver=$(dpkg-query -W -f='${Version}' "$common")
     mm=${common#php}; mm=${mm%-common}
-    if zgrep -qE 'CVE-2026-10961[89]' "/usr/share/doc/$common/changelog.Debian.gz" 2>/dev/null; then
+    # The newest round this repo carries (Nov 2026); October's CVE IDs alone mean an older build
+    if zgrep -qF 'CVE-2026-129289' "/usr/share/doc/$common/changelog.Debian.gz" 2>/dev/null; then
         ok "PHP $mm  $ver  — patched"
     elif ! grep -qF "$REPO_URL" <<<"$(apt-cache madison "$common" 2>/dev/null)"; then
         warn "PHP $mm  $ver  — not in this repository yet; re-run this script once it is"

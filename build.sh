@@ -39,12 +39,14 @@ cd /build/php
 # telemetry.sury.org:53 on start, switched on by TELEMETRY_HOST from
 # /usr/lib/php/php-common.mk. Never pull that file in, and compile the
 # header out entirely (its newer libsodium calls also break on 20.04).
-sed -i '/^-include \/usr\/lib\/php\/php-common.mk/d' debian/rules
+# (older sources use "-include", newer ones a plain "include" inside ifneq/endif)
+sed -i -E '/^-?include \/usr\/lib\/php\/php-common.mk/d' debian/rules
 sed -i 's/^#include "secure_dns_telemetry.h"/#ifdef TELEMETRY_HOST\n#include "secure_dns_telemetry.h"\n#endif/' \
     sapi/apache2handler/php_functions.c sapi/fpm/fpm/fpm_main.c
 
 # ── Version: Sury's revision + ours, sorting above Ondrej's frozen focal builds
-base=$(dpkg-parsechangelog -SVersion | sed 's/+0~.*//')
+# Sury's suffix: +0~<date>... (until Oct 2026) or +debsuryorg<N>... (since Nov 2026)
+base=$(dpkg-parsechangelog -SVersion | sed -E 's/\+(0~|debsuryorg).*//')
 export DEBFULLNAME='php-focal-backports' DEBEMAIL='noreply@github.com'
 dch --newversion "${base}+pfb${REVISION}~${target}.1" --distribution "$VERSION_CODENAME" --force-distribution \
     "Rebuild Sury's security backports for ${PRETTY_NAME}, without DNS telemetry."
